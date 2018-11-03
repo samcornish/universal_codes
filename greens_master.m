@@ -27,14 +27,18 @@ clear
 close all
 
 % addpaths here to the location of the variables
+% ------------------------------------------------- % vv
 addpath /home/ocean2/samc/MO_CRFs/variables/
 % addpath to the location of the function eshade2.m 
 addpath /home/ocean2/samc/HiGEMArcticCRFs/fw_content_atm_circ/analysis/functions/
+% ------------------------------------------------- % ^^
 
 % load forcing timeseries here. This should probably be deseasonalised, if using climate data
-% load 
+% ------------------------------------------------- % vv
 load pressure_EOFs_anude.mat
-forcing = pc(:,1:end);	% replace var_name as appropriate. IMPORTANT: this should be a vector or a matrix containing the forcing along separate columns.
+forcing = pc(:,1:end);	% replace variable name as appropriate. 
+%IMPORTANT: this should be a vector or a matrix containing the forcing along separate columns.
+% ------------------------------------------------- % ^^
 % Here you have the option to specify the required number of components
 % (separate columns) you want to include in the forcing (replace 'end'
 % accordingly).
@@ -50,24 +54,31 @@ for i = 1:szf(2)
 end
 
 % Load the target series here
+% ------------------------------------------------- % vv
 load fw_tseries_1_anude.mat fw_ts_ds  % this should probably be deseasonalised, if using climate data
 target = fw_ts_ds;  % replace var_name as appropriate
+% ------------------------------------------------- % ^^
 target = detrend(target,'linear');   % decide if a linear or constant detrend is most appropriate 
 
 % Determining the strings used to save files
 % saving variables
 % insert the directory name for saving the variables
+% ------------------------------------------------- % vv
 var_dir = '/home/ocean_personal_data/samc/MO_CRFs/variables/';
 % directory for figures:
 fig_dir = '/home/ocean_personal_data/samc/MO_CRFs/figures/';
+% ------------------------------------------------- % ^^
+
 % filename identifier - this should be a word or several that uniquely
 % identifies the saved variables to the input variables. Usually this will
 % be the name of the target timeseries and the model or record it is from
+% ------------------------------------------------- % vv
 save_id = 'FWC_anude';
 title_id = 'MO GC2 FWC';    % for the sake of plotting (spaces are fine!)
 target_id = 'FWC';
 target_units = 'm^3';
 tseries_units = 'months';
+% ------------------------------------------------- % ^^
 
 %% Determine cutoff and segment choices
 % Choices for the length of memory going back a given number of lagged
@@ -138,7 +149,7 @@ ssn = 1;    % Segment scheme number
 fprintf('starting impulse calculations')
 for e = 1:szf(2)    % indexing for the component of the forcing used
 for k = spacing_index     % indexing for the segment scheme used
-    L = l_seg(k);       % ensuring that we take into account the fact that the segments have different lengths between the segments schemes
+    L = l_seg_choices(k);       % ensuring that we take into account the fact that the segments have different lengths between the segments schemes
     for s = 1:sz_seg(2) % indexing through each segment s in scheme k
         for tau_index = 1:length(tau_cutoff_choices)    % indexing for the lag 
             
@@ -148,7 +159,7 @@ for k = spacing_index     % indexing for the segment scheme used
             
             X = forcing(all_start_times(s,k)+N-tau_cut+1:all_end_times(s,k)+N,e);    % We use X for simplicity; it represents the forcing series in what follows
 
-            Y = target(segment(1:l_seg(k),s,k));    % We use Y for simplicity; it represents the target series in what follows
+            Y = target(segment(1:l_seg_choices(k),s,k));    % We use Y for simplicity; it represents the target series in what follows
             
             M = zeros(tau_cut,L);     %  M is a matrix of the forcing, with no. of rows = number of lags tau used, and no. of columns = total length L of the target
             for i = 1:tau_cut
@@ -179,7 +190,6 @@ for e = 1:szf(2)
 for k = spacing_index
 for j = 1:min(tau_cutoff_choices)
             step_resp(j,k,e) = sum(mean_G_all(1:j,k,e));		
-%            step_resp_pc_long(j) = sum(G(end-j+1:end));
             step_err_spread(j,k,e) = sum(std_G_all(1:j,k,e));
 end
 end
@@ -209,21 +219,21 @@ for k = spacing_index
         
         Y = target;
         
-        X = [zeros(tau_cut-1,1);X1]; % The column vector X (PC) with g - 1 zeros appended to start
+        X = [zeros(tau_cut-1,1);X1]; % The column vector X with tau_cut - 1 zeros appended to start
         
-        M = zeros(tau_cut,L);     %  initialising a matrix of the forcing, with g rows and t (3778) columns
+        M = zeros(tau_cut,L);     %  initialising a matrix of the forcing, with tau_cut rows and L columns
         for i = 1:tau_cut
-            M(i,:) = X(tau_cut-(i-1):L+tau_cut-i);  % each row i has t number of elements
+            M(i,:) = X(tau_cut-(i-1):L+tau_cut-i);  
         end
         
         recon_ctrl = mean_G_all(:,k,e)'*M;
         recon_ctrl_errs_spread = std_G_all(:,k,e)'*M;
         
         epsilon = Y-mean_G_all(:,k,e)'*M; %errors
-        s2 = (epsilon*epsilon')/(L-tau_cut); % sigma^2 = sum [epsilon] / (n-p) , n-p = degress of freedom = no. of data points minus number of impulse response coefficients = t-g
+        s2 = (epsilon*epsilon')/(L-tau_cut); % sigma^2 = sum [epsilon] / (n-p) , n-p = degress of freedom = no. of data points minus number of impulse response coefficients = L - tau_cut
 
         S2 = s2*eye(tau_cut);
-        G_var = M*M'\S2; %variance-covariance matrix for the impulse response to a given PC
+        G_var = M*M'\S2; %variance-covariance matrix for the impulse response to a given forcing component
         
         impulse_err_spread = diag(G_var(1:tau_cut,1:tau_cut)).^0.5;
         step_err_res = zeros(tau_cut,1);
@@ -288,33 +298,33 @@ for e = 1:szf(2)
         sd = std(X1);
         X1 = X1/sd;
         Y = target;
-        X = [zeros(tau_cut-1,1);X1]; % The column vector X (forcing) with g - 1 zeros appended to start
+        X = [zeros(tau_cut-1,1);X1]; % The column vector X (forcing) with tau_cut - 1 zeros appended to start
         
-        M = zeros(tau_cut,L);     %  initialising a matrix of the forcing, with g rows and t (3778) columns
+        M = zeros(tau_cut,L);     %  initialising a matrix of the forcing, with tau_cut rows and L columns
         for i = 1:tau_cut
-            M(i,:) = X(tau_cut-(i-1):L+tau_cut-i);  % each row i has t number of elements
+            M(i,:) = X(tau_cut-(i-1):L+tau_cut-i);  
         end
         
-        grand_CR(:,e) = G_grand_mean(:,e)'*M;         %ctrl reconstruction
-        grand_CR_errs_spread = G_grand_std(:,e)'*M;       %ctrl recon errors: spread component
+        grand_CR(:,e) = G_grand_mean(:,e)'*M;         % reconstruction
+        grand_CR_errs_spread = G_grand_std(:,e)'*M;       % recon errors: spread component
         
-        epsilon = Y-G_grand_mean(:,e)'*M; %errors
+        epsilon = Y-G_grand_mean(:,e)'*M; % residual
         s2 = (epsilon*epsilon')/(L-tau_cut); % sigma^2 = sum [epsilon] / (n-p) , n-p = degress of freedom = no. of data points minus number of impulse response coefficients = t-g
 
         S2 = s2*eye(tau_cut);
-        G_var = M*M'\S2; %variance-covariance matrix for the impulse response to a given PC
+        G_var = M*M'\S2; % variance-covariance matrix for the impulse response to a given forcing component
         G_var_save(:,:,e) = G_var;
 
-        grand_IE_spread = diag(G_var(1:tau_cut,1:tau_cut)).^0.5;       %impulse error spread component
+        grand_IE_spread = diag(G_var(1:tau_cut,1:tau_cut)).^0.5;       % impulse error spread component
         
         for j = 1:tau_cut
             grand_SE_res(j) = sum(sum(G_var(1:j, 1:j))).^0.5;        % step error residual component
         end
-        grand_CR_errs_res = ( diag(  M' * G_var * M ) ) .^0.5 ;  %ctrl recon errors: residual component
+        grand_CR_errs_res = ( diag(  M' * G_var * M ) ) .^0.5 ;  % recon errors: residual component
       
         grand_SE(:,e) = (grand_SE_res.^2+grand_SE_spread(:,e).^2).^0.5; % step errors from res and spread. The error takes into account the residual from the fits and the spread across the ensemble of fits.
 
-        grand_CR_errs(:,e) = (grand_CR_errs_res.^2 + grand_CR_errs_spread'.^2).^0.5;    %total ctrl recon errors
+        grand_CR_errs(:,e) = (grand_CR_errs_res.^2 + grand_CR_errs_spread'.^2).^0.5;    % total recon errors
 
         grand_impulse_err(:,e) = (grand_IE_spread.^2 + G_grand_std(:,e).^2).^0.5;
         fprintf('error calc collated G pt.2 forcing component complete: #%d\n', fc)
@@ -380,11 +390,11 @@ name = strcat(title_id,' recon, forcing comp: ',comp_no{i});
 title(name,'FontName','Arial','FontSize',18)
 xlabel(tseries_units,'FontName','Arial','FontSize',18); ylabel(strcat(target_id,' change, ',target_units),'FontName','Arial','FontSize',18); grid on; hold off
 
-filename = strcat(fig_dir,save_id,'_recon_fc_',PC{i});
+filename = strcat(fig_dir,save_id,'_recon_fc_',comp_no{i});
 saveas(gcf, filename)
 end
 
-figure %step responses to all PCs in one plot % EDITING FROM HERE
+figure % step responses to all forcing components in one plot 
 
 for f = fliplr(1:szf(2))    % we do this in reverse order so that the leading forcing components are at the front of the plot
 errorbar(1:length(grand_SR(:,f)), grand_SR(:,f), grand_SE(:,f)); hold on;
