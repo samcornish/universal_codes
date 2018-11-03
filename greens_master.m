@@ -8,6 +8,7 @@
 % These estimates come from changing the impulse cutoff lag, and scanning through the target series using multiple segments of a shorter length than the whole target series 
 % Error is calculated by combining in quadrature the estimates of error derived from the residual between the mean reconstruction and target ("residual") and those from the standard deviation of the estimates ("spread").
 % This code was written by Sam B Cornish, 2018. It is based on precursors written by Emma Beer and Yavor K. Kostov.
+% Written to be run with Matlab 2016a, may need updating for subsequent editions
 
 % This script allows the user to specify:
 % One target timeseries
@@ -19,9 +20,9 @@
 % The spacing between segments used in the segment scheme.
 
 
-% Code status
+% Code status: in progress
 
-%% Loading variables and intial processing
+%% Loading variables and intial processing - user should edit in this section only 
 clear
 close all
 
@@ -53,10 +54,25 @@ load fw_tseries_1_anude.mat fw_ts_ds  % this should probably be deseasonalised, 
 target = fw_ts_ds;  % replace var_name as appropriate
 target = detrend(target,'linear');   % decide if a linear or constant detrend is most appropriate 
 
+% Determining the strings used to save files
+% saving variables
+% insert the directory name for saving the variables
+var_dir = '/home/ocean_personal_data/samc/MO_CRFs/variables/';
+% directory for figures:
+fig_dir = '/home/ocean_personal_data/samc/MO_CRFs/figures/';
+% filename identifier - this should be a word or several that uniquely
+% identifies the saved variables to the input variables. Usually this will
+% be the name of the target timeseries and the model or record it is from
+save_id = 'FWC_anude';
+title_id = 'MO GC2 FWC';    % for the sake of plotting (spaces are fine!)
+target_id = 'FWC';
+target_units = 'm^3';
+tseries_units = 'months';
+
 %% Determine cutoff and segment choices
 % Choices for the length of memory going back a given number of lagged
 % months. We vary the cutoff lag to obtain independent estimates.
-tau_cutoff_choices=[360:6:420];     % Change these as appropriate
+tau_cutoff_choices= 360:6:420;     % Change these as appropriate
 N = max(tau_cutoff_choices) + 100; % a nominal large number, always larger than the greatest value of tau cutoff. +100 probably unecessary. 
 forcing = [zeros(N,szf(2));forcing];  % This should append N zeros to the start of each column of forcing.
 
@@ -161,7 +177,7 @@ step_resp = zeros(min(tau_cutoff_choices),l_sp,3);
 step_err_spread = zeros(min(tau_cutoff_choices),l_sp,3);
 for e = 1:szf(2)
 for k = spacing_index
-for j = 1:360
+for j = 1:min(tau_cutoff_choices)
             step_resp(j,k,e) = sum(mean_G_all(1:j,k,e));		
 %            step_resp_pc_long(j) = sum(G(end-j+1:end));
             step_err_spread(j,k,e) = sum(std_G_all(1:j,k,e));
@@ -174,7 +190,7 @@ fprintf('step responses complete')
 
 tau_cut = min(tau_cutoff_choices);    % choose the minimimum cutoff choice to do reconstructions
 step_errs= zeros(tau_cut,l_sp,szf(2));
-Recon= zeros(L,l_sp,szf(2));   
+Recon = zeros(L,l_sp,szf(2));   
 Recon_err= zeros(L,l_sp,szf(2));
 impulse_err= zeros(tau_cut,l_sp,szf(2));
 ssn = 1;
@@ -187,7 +203,7 @@ for k = spacing_index
             recon_ctrl_errs_spread recon_errs_res impulse_err_spread...
             step_err_res X1 i
 
-        X1 = forcing(N+1:end,e); %Now need the whole ctrl run
+        X1 = forcing(N+1:end,e); % Now need the whole target series to compute the reconstruction
         sd = std(X1);
         X1 = X1/sd;
         
@@ -223,20 +239,20 @@ for k = spacing_index
 
         impulse_err(:,k,e) = (impulse_err_spread.^2 + std_G_all(:,k,e).^2).^0.5;
 
-        fprintf('seg error calc segment timecheck is #%d\n', ssn)
+        fprintf('seg scheme error calc number complete: no. #%d\n', ssn)
             ssn = ssn +1;
     
 end
-fprintf('pc complete no. #%d\n', fc)
+fprintf('forcing component complete: no. #%d\n', fc)
             fc = fc +1;
 end
 %% Collating estimates for G and calculating 'grand' step responses. pt.1/2 error calculation.
 % error calculation for collated G
-G_coll = zeros(sz_G(1),sz_G(2)*sz_G(3)*sz_G(4),szf(2)); % G collated across all segment schemes and for different models
-G_grand_mean = zeros(sz_G(1),szf(2));    % the grand mean estimate of G for each model
-G_grand_std = zeros(sz_G(1),szf(2));     % the grand std component of error for G for each model
-grand_SR=zeros(tau_cut,szf(2));        %grand step response
-grand_SE_spread=zeros(tau_cut,szf(2)); %grand step error: spread component 
+G_coll = zeros(sz_G(1),sz_G(2)*sz_G(3)*sz_G(4),szf(2)); % G collated across all estimates, where we change: cutoff lag, segment, segment scheme.
+G_grand_mean = zeros(sz_G(1),szf(2));    % the grand mean estimate of G for each forcing component
+G_grand_std = zeros(sz_G(1),szf(2));     % the grand std component of error for G for each forcing component
+grand_SR = zeros(tau_cut,szf(2));        % grand step response
+grand_SE_spread = zeros(tau_cut,szf(2)); % grand step error: spread component 
 fc = 1;   
 
 for e = 1:szf(2)
@@ -252,11 +268,11 @@ for j = 1:tau_cut
 end
 figure 
 plot(grand_SR(:,e))
-fprintf('error calc collated G pt.1 pc no. #%d\n', fc)
+fprintf('error calc collated G pt.1 forcing component no. #%d\n', fc)
             fc = fc +1;
 end
 %% error calculation for collated G (2/2)
-% no need for loop here as just doing once
+% just do one set of calculations for each forcing component
 
 grand_CR = zeros(L,szf(2));
 grand_CR_errs = zeros(L,szf(2));
@@ -268,7 +284,7 @@ G_var_save = zeros(tau_cut,tau_cut,szf(2));
 for e = 1:szf(2)
     clearvars X X1 Y M sd G epsilon var G_var i S2 resp_ctrl s2 grand_IE_spread grand_CR_err_res grand_SE_res grand_CR_errs_spread
         grand_SE_res = zeros(tau_cut,1);
-        X1 = forcing(N+1:end,e); %Now need the whole ctrl run
+        X1 = forcing(N+1:end,e); % Now need the whole target series
         sd = std(X1);
         X1 = X1/sd;
         Y = target;
@@ -301,7 +317,7 @@ for e = 1:szf(2)
         grand_CR_errs(:,e) = (grand_CR_errs_res.^2 + grand_CR_errs_spread'.^2).^0.5;    %total ctrl recon errors
 
         grand_impulse_err(:,e) = (grand_IE_spread.^2 + G_grand_std(:,e).^2).^0.5;
-        fprintf('error calc collated G pt.2 model complete is #%d\n', fc)
+        fprintf('error calc collated G pt.2 forcing component complete: #%d\n', fc)
             fc = fc +1;
 end
 
@@ -317,125 +333,101 @@ hold on
 end
 end
 legend('eof 1','eof 2','eof 3')
-save /home/ocean2/samc/MO_CRFs/variables/anude_FWC_G.mat G_5D std_G_all mean_G_all G_grand_mean G_grand_std grand_impulse_err G_var_save
-save('/home/ocean2/samc/MO_CRFs/variables/anude_FWC_step_resp',...
-'step_resp', 'step_errs', 'grand_SE', 'grand_SR')
-save('/home/ocean2/samc/MO_CRFs/variables/anude_FWC_recon.mat',...
-'grand_CR', 'grand_CR_errs', 'R_ctrl', 'E_ctrl')
+filename = strcat(var_dir,save_id,'_G.mat');
+save(filename,'G_5D','std_G_all','mean_G_all','G_grand_mean','G_grand_std','grand_impulse_err','G_var_save');
+filename = strcat(var_dir,save_id,'_step_resp.mat');
+save(filename,'step_resp', 'step_errs', 'grand_SE', 'grand_SR')
+filename = strcat(var_dir,save_id,'_recon.mat');
+save(filename,'target','grand_CR', 'grand_CR_errs', 'Recon', 'Recon_err')
 
-
-for i=1:szf(2)
+leg_info = cell(1,szf(2));
+for i=1:szf(2)   % Looping through the forcing components
 figure; %individual segment schemes
 hold on
-errorbar([1:length(step_resp(:,4,i))], step_resp(:,4,i), step_errs(:,4,i), 'g');
-errorbar([1:length(step_resp(:,3,i))], step_resp(:,3,i), step_errs(:,3,i), 'y');
-errorbar([1:length(step_resp(:,2,i))], step_resp(:,2,i), step_errs(:,2,i), 'r');
-errorbar([1:length(step_resp(:,1,i))], step_resp(:,1,i), step_errs(:,1,i), 'b'); hold off;
-legend('spacing: 20','10','1','0')
-xlim([0 400])
+for s = fliplr(spacing_index)
+errorbar(1:length(step_resp(:,s,i)), step_resp(:,s,i), step_errs(:,s,i));
+leg_info{i} = ['spacing = ' num2str(spacing(s))];
+end
+hold off;
+legend(leg_info)
+xlim([0 1.1*min(tau_cutoff_choices)])
 set(gca,'FontSize',18)
 set(gca,'FontName','Arial')
-xlabel('Months','FontName','Arial','FontSize',18); ylabel('FWC change [m^3]','FontName','Arial','FontSize',18); grid on; hold off
-name = strcat('Arctic FWC response to ',PC{i});
+xlabel(tseries_units,'FontName','Arial','FontSize',18); ylabel(strcat(target_id,' change ',target_units),'FontName','Arial','FontSize',18); grid on; hold off
+name = strcat(title_id,' response to forcing component ',comp_no{i}); 
 title(name);
-filename = strcat('/home/ocean2/samc/MO_CRFs/figures/anude_step_resp_segments_PC-',PC{i});
+filename = strcat(fig_dir,save_id,'_step_resp_segments_forcing_comp_',comp_no{i});
 saveas(gcf, filename)
-
-% figure
-% eshade2([1:length(R_ctrl(:,2,i))], R_ctrl(:,2,i), E_ctrl(:,2,i), 'b')
-% hold on
-% plot(R_ctrl(:,2), 'g', 'LineWidth', 2.6)
-% plot(fw_WA,'r','LineWidth',2.8);hold on
-% xlim([420-1 3778+1])
-% set(gca,'FontSize',18)
-% set(gca,'FontName','Arial')
-% name = strcat('BG_recon',BG_model{i));
-% title(name)
-% xlabel('Months','FontName','Arial','FontSize',18); ylabel('FW Content [m^3]','FontName','Arial','FontSize',18); grid on; hold off
-%Saving a .mat file:
-% save('/home/ocean2/samc/BG_experiments/variables/CMIP5_9600_WA_steps_segments_collated.mat',...
-%     'sum_straits_FWF_ds', 'y1_ctrl', 'y2_ctrl', 'y3_ctrl', 'y4_ctrl', 'e1_ctrl', 'e2_ctrl', 'e3_ctrl', 'e4_ctrl','yPC1plusPC2_ctrl','ePC1plusPC2_ctrl')
-% saveas(gcf, '/home/ocean2/samc/CMIP5_9600ArcticCRFs/fw_content_atm_circ/analysis/figures/Fig70N_Control_Reconstruction_PCs1plus2plus3_collated')
-
-
-figure % collated segments
-errorbar([1:length(grand_SR(:,i))], grand_SR(:,i), grand_SE(:,i), 'b'); hold on;
+clearvars leg_info
+figure % collated segments 
+errorbar(1:length(grand_SR(:,i)), grand_SR(:,i), grand_SE(:,i), 'b'); hold on;
 plot(grand_SR(:,i),'k'); hold off
 set(gca,'FontSize',18)
 set(gca,'FontName','Arial')
-% xlim([0 400])
-name = strcat('MO GC2 FWC step resp to PC ,',PC{i});
-title(name,'FontName','Arial','FontSize',18); xlabel('Months','FontName','Arial','FontSize',18); ylabel('Poleward FW flux [m^3/s]','FontName','Arial','FontSize',18); grid on; 
-filename = strcat('/home/ocean2/samc/MO_CRFs/figures/FWC_step_resp_collated_PC_anude',PC{i});
+name = strcat(title_id,' step resp to forcing component ',comp_no{i});
+title(name,'FontName','Arial','FontSize',18); xlabel(tseries_units,'FontName','Arial','FontSize',18); ylabel(strcat(target_id,' change, ',target_units),'FontName','Arial','FontSize',18); grid on; 
+filename = strcat(fig_dir,save_id,'step_resp_collated_forcing_comp_',comp_no{i});
 saveas(gcf, filename)
 
-figure  %collated recon
-eshade2([1:length(grand_CR(:,i))], grand_CR(:,i), grand_CR_errs(:,i), 'b')
+figure  % collated recon 
+eshade2(1:length(grand_CR(:,i)), grand_CR(:,i), grand_CR_errs(:,i), 'b')
 hold on
 plot(grand_CR(:,i), 'g', 'LineWidth', 2.6)
 plot(target,'r','LineWidth',2.8);hold on
-% xlim([420-1 3778+1])
 set(gca,'FontSize',18)
 set(gca,'FontName','Arial')
-name = strcat('MO GC2 FWC recon,',PC{i});
+name = strcat(title_id,' recon, forcing comp: ',comp_no{i});
 title(name,'FontName','Arial','FontSize',18)
-xlabel('Months','FontName','Arial','FontSize',18); ylabel('FWC [m^3]','FontName','Arial','FontSize',18); grid on; hold off
+xlabel(tseries_units,'FontName','Arial','FontSize',18); ylabel(strcat(target_id,' change, ',target_units),'FontName','Arial','FontSize',18); grid on; hold off
 
-filename = strcat('/home/ocean2/samc/MO_CRFs/figures/FWC_recon_anude',PC{i});
+filename = strcat(fig_dir,save_id,'_recon_fc_',PC{i});
 saveas(gcf, filename)
 end
 
-figure %step responses to all PCs in one plot
+figure %step responses to all PCs in one plot % EDITING FROM HERE
 
-errorbar([1:length(grand_SR(:,3))], -grand_SR(:,3), grand_SE(:,3), 'y'); hold on;
-errorbar([1:length(grand_SR(:,2))], grand_SR(:,2), grand_SE(:,2), 'r'); hold on;
-errorbar([1:length(grand_SR(:,1))], grand_SR(:,1), grand_SE(:,1), 'b'); hold on;
- % note - using minus here to plot in accordance with a positive EOF3 as defined in the GRL paper Johnson et al. 2018
-legend('PC1','PC2','PC3')
-plot(grand_SR(:,1),'b','LineWidth',2);
-plot(grand_SR(:,2),'r','LineWidth',2);
-plot(-grand_SR(:,3),'y','LineWidth',2);
-plot(-grand_SR(:,3),'k','LineWidth',1);
-xlabel('time, months'); ylabel('FWC, m^3/s'); title('FWC step responses'); xlim([0 370])
+for f = fliplr(1:szf(2))    % we do this in reverse order so that the leading forcing components are at the front of the plot
+errorbar(1:length(grand_SR(:,f)), grand_SR(:,f), grand_SE(:,f)); hold on;
+leg_info{f} = ['forcing component ',num2str(f)];
+plot(grand_SR(:,f),'k','LineWidth',2);
+end
+legend(leg_info)
+xlabel(tseries_units); ylabel(strcat(target_id,units)); title(strcat(title_id,' step responses')); xlim([0 1.1*min(tau_cutoff_choices)])
 
-filename = '/home/ocean2/samc/MO_CRFs/figures/FWC_step_resps_anude'
+filename = strcat(fig_dir,save_id,'_step_resps');
 saveas(gcf,filename)
-
-
-%Saving a .mat file:
-save('/home/ocean2/samc/MO_CRFs/variables/FWC_recon_anude.mat',...
-    'target', 'grand_CR', 'grand_CR_errs')
 
 
 %% 
 % correlations
 
-R_eof_seg = zeros(l_sp,szf(2));
-P_eof_seg = zeros(l_sp,szf(2));
+R_fc_seg = zeros(l_sp,szf(2));
+P_fc_seg = zeros(l_sp,szf(2));
 figure
 for i = 1:szf(2)
 for k = spacing_index
 [r,p] = corrcoef(detrend(target(1,360:end)),detrend(Recon(360:end,k,i)));
-    R_eof_seg(k,i) = r(1,2);
-    P_eof_seg(k,i) = p(1,2);
+    R_fc_seg(k,i) = r(1,2);
+    P_fc_seg(k,i) = p(1,2);
 end
 
-
-plot(R_eof_seg(:,i),'--o')
+plot(R_fc_seg(:,i),'--o')
 hold on 
 % plot(P(:,i))
 
 
 xlim([1 7])
 xlabel('segment spacing')
-name = 'ctrl/recon correlations across eofs';
+name = 'ctrl/recon correlations across forcing components';
 title(name,'FontName','Arial','FontSize',18)
 ylabel('R')
 
-[r_eof, p_eof] = corrcoef(detrend(target(1,360:end)),detrend(grand_CR(360:end,i)))
+[r_fc, p_fc] = corrcoef(detrend(target(1,360:end)),detrend(grand_CR(360:end,i)));
 
 end
-[r_overall p_overall] = corrcoef(detrend(target(1,360:end)),detrend(sum(grand_CR(360:end,:),2)))
-legend(PC)
-saveas(gcf,'/home/ocean2/samc/MO_CRFs/figures/FWC_ctrl_recon_correlations_anude')
-save('/home/ocean2/samc/MO_CRFs/variables/FWC_recon_corrcoefs_anude.mat','R_eof_seg','P_eof_seg','r_eof','p_eof','r_overall','p_overall')
+[r_overall, p_overall] = corrcoef(detrend(target(1,360:end)),detrend(sum(grand_CR(360:end,:),2)));
+legend(comp_no)
+filename = strcat(fig_dir,save_id,'_recon_correlations');
+saveas(gcf, filename)
+filename = strcat(var_dir,save_id,'_recon_corrcoefs.mat');
+save(filename,'R_fc_seg','P_fc_seg','r_fc','p_fc','r_overall','p_overall')
