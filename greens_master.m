@@ -149,7 +149,7 @@ ssn = 1;    % Segment scheme number
 fprintf('starting impulse calculations')
 for e = 1:szf(2)    % indexing for the component of the forcing used
 for k = spacing_index     % indexing for the segment scheme used
-    L = l_seg_choices(k);       % ensuring that we take into account the fact that the segments have different lengths between the segments schemes
+    l = l_seg_choices(k);       % ensuring that we take into account the fact that the segments have different lengths between the segments schemes
     for s = 1:sz_seg(2) % indexing through each segment s in scheme k
         for tau_index = 1:length(tau_cutoff_choices)    % indexing for the lag 
             
@@ -161,9 +161,9 @@ for k = spacing_index     % indexing for the segment scheme used
 
             Y = target(segment(1:l_seg_choices(k),s,k));    % We use Y for simplicity; it represents the target series in what follows
             
-            M = zeros(tau_cut,L);     %  M is a matrix of the forcing, with no. of rows = number of lags tau used, and no. of columns = total length L of the target
+            M = zeros(tau_cut,l);     %  M is a matrix of the forcing, with no. of rows = number of lags tau used, and no. of columns = total length l of the target
             for i = 1:tau_cut
-                M(i,:) = X(tau_cut-(i-1):L+tau_cut-i);  % each row i has L elements
+                M(i,:) = X(tau_cut-(i-1):l+tau_cut-i);  % each row i has l elements
             end
 
             G = M'\(Y'); % regression of the freshwater onto the forcing, lagged (from M)
