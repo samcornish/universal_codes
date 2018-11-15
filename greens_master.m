@@ -75,7 +75,7 @@ fig_dir = '/home/ocean_personal_data/samc/MO_CRFs/figures/';
 % ------------------------------------------------- % vv
 save_id = 'FWC_anude';
 title_id = 'MO GC2 FWC';    % for the sake of plotting (spaces are fine!)
-target_id = 'FWC';
+target_id = 'FWC';          % for y axis label (spaces are fine!)
 target_units = 'm^3';
 tseries_units = 'months';
 % ------------------------------------------------- % ^^
@@ -356,14 +356,14 @@ figure; %individual segment schemes
 hold on
 for s = fliplr(spacing_index)
 errorbar(1:length(step_resp(:,s,i)), step_resp(:,s,i), step_errs(:,s,i));
-leg_info{i} = ['spacing = ' num2str(spacing(s))];
+leg_info{s} = ['spacing = ' num2str(spacing(s))];
 end
 hold off;
 legend(leg_info)
 xlim([0 1.1*min(tau_cutoff_choices)])
 set(gca,'FontSize',18)
 set(gca,'FontName','Arial')
-xlabel(tseries_units,'FontName','Arial','FontSize',18); ylabel(strcat(target_id,' change ',target_units),'FontName','Arial','FontSize',18); grid on; hold off
+xlabel(tseries_units,'FontName','Arial','FontSize',18); ylabel(strcat(target_id,' change, ',target_units),'FontName','Arial','FontSize',18); grid on; hold off
 name = strcat(title_id,' response to forcing component ',comp_no{i}); 
 title(name);
 filename = strcat(fig_dir,save_id,'_step_resp_segments_forcing_comp_',comp_no{i});
@@ -374,7 +374,7 @@ errorbar(1:length(grand_SR(:,i)), grand_SR(:,i), grand_SE(:,i), 'b'); hold on;
 plot(grand_SR(:,i),'k'); hold off
 set(gca,'FontSize',18)
 set(gca,'FontName','Arial')
-name = strcat(title_id,' step resp to forcing component ',comp_no{i});
+name = strcat(title_id,' step resp to forcing component: ',comp_no{i});
 title(name,'FontName','Arial','FontSize',18); xlabel(tseries_units,'FontName','Arial','FontSize',18); ylabel(strcat(target_id,' change, ',target_units),'FontName','Arial','FontSize',18); grid on; 
 filename = strcat(fig_dir,save_id,'step_resp_collated_forcing_comp_',comp_no{i});
 saveas(gcf, filename)
@@ -402,7 +402,7 @@ leg_info{f} = ['forcing component ',num2str(f)];
 plot(grand_SR(:,f),'k','LineWidth',2);
 end
 legend(leg_info)
-xlabel(tseries_units); ylabel(strcat(target_id,units)); title(strcat(title_id,' step responses')); xlim([0 1.1*min(tau_cutoff_choices)])
+xlabel(tseries_units); ylabel(strcat(target_id,', ',target_units)); title(strcat(title_id,' step responses')); xlim([0 1.1*min(tau_cutoff_choices)])
 
 filename = strcat(fig_dir,save_id,'_step_resps');
 saveas(gcf,filename)
@@ -427,8 +427,8 @@ hold on
 
 
 xlim([1 7])
-xlabel('segment spacing')
-name = 'ctrl/recon correlations across forcing components';
+xlabel('segment scheme')
+name = 'target/recon correlations across forcing components';
 title(name,'FontName','Arial','FontSize',18)
 ylabel('R')
 
