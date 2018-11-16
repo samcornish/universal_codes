@@ -184,8 +184,8 @@ fc = fc +1;
 end
 
 % compute step responses
-step_resp = zeros(min(tau_cutoff_choices),l_sp,3);
-step_err_spread = zeros(min(tau_cutoff_choices),l_sp,3);
+step_resp = zeros(min(tau_cutoff_choices),l_sp,szf(2));
+step_err_spread = zeros(min(tau_cutoff_choices),l_sp,szf(2));
 for e = 1:szf(2)
 for k = spacing_index
 for j = 1:min(tau_cutoff_choices)
