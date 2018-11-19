@@ -49,9 +49,13 @@ forcing = detrend(forcing,'constant');   % remove the mean from each component. 
 % normalise by the standard deviation of each component of the forcing. We
 % do this assuming we want to find the response to a one standard deviation
 % step in the forcing
+% ------------------------------------------------- % vv
+% IMPORTANT: comment out these lines if you don't want to normalise the
+% forcing by its standard deviation
 for i = 1:szf(2)
     forcing(:,i) = forcing(:,i)./sdf(i);
 end
+% ------------------------------------------------- % ^^
 
 % Load the target series here
 % ------------------------------------------------- % vv
@@ -214,9 +218,7 @@ for k = spacing_index
             step_err_res X1 i
 
         X1 = forcing(N+1:end,e); % Now need the whole target series to compute the reconstruction
-        sd = std(X1);
-        X1 = X1/sd;
-        
+       
         Y = target;
         
         X = [zeros(tau_cut-1,1);X1]; % The column vector X with tau_cut - 1 zeros appended to start
@@ -295,8 +297,6 @@ for e = 1:szf(2)
     clearvars X X1 Y M sd G epsilon var G_var i S2 resp_ctrl s2 grand_IE_spread grand_CR_err_res grand_SE_res grand_CR_errs_spread
         grand_SE_res = zeros(tau_cut,1);
         X1 = forcing(N+1:end,e); % Now need the whole target series
-        sd = std(X1);
-        X1 = X1/sd;
         Y = target;
         X = [zeros(tau_cut-1,1);X1]; % The column vector X (forcing) with tau_cut - 1 zeros appended to start
         
