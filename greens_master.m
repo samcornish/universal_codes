@@ -335,14 +335,6 @@ fprintf('plots and saving')
 %% plots and saving
 %plots
 
-figure
-for e = 1:szf(2)
-for k = spacing_index
-plot(step_resp(:,k,e))
-hold on
-end
-end
-legend('eof 1','eof 2','eof 3')
 filename = strcat(var_dir,save_id,'_G.mat');
 save(filename,'G_5D','std_G_all','mean_G_all','G_grand_mean','G_grand_std','grand_impulse_err','G_var_save');
 filename = strcat(var_dir,save_id,'_step_resp.mat');
@@ -359,12 +351,12 @@ errorbar(1:length(step_resp(:,s,i)), step_resp(:,s,i), step_errs(:,s,i));
 leg_info{s} = ['spacing = ' num2str(spacing(s))];
 end
 hold off;
-legend(leg_info)
+legend(fliplr(leg_info))
 xlim([0 1.1*min(tau_cutoff_choices)])
 set(gca,'FontSize',18)
 set(gca,'FontName','Arial')
 xlabel(tseries_units,'FontName','Arial','FontSize',18); ylabel(strcat(target_id,' change, ',target_units),'FontName','Arial','FontSize',18); grid on; hold off
-name = strcat(title_id,' response to forcing component ',comp_no{i}); 
+name = strcat(title_id,' response to forcing component: ',comp_no{i}); 
 title(name);
 filename = strcat(fig_dir,save_id,'_step_resp_segments_forcing_comp_',comp_no{i});
 saveas(gcf, filename)
