@@ -391,6 +391,8 @@ figure % step responses to all forcing components in one plot
 for f = fliplr(1:szf(2))    % we do this in reverse order so that the leading forcing components are at the front of the plot
 errorbar(1:length(grand_SR(:,f)), grand_SR(:,f), grand_SE(:,f)); hold on;
 leg_info{f} = ['forcing component ',num2str(f)];
+end
+for f = fliplr(1:szf(2))    % we do this in reverse order so that the leading forcing components are at the front of the plot
 plot(grand_SR(:,f),'--k','LineWidth',2);
 end
 legend(fliplr(leg_info))
