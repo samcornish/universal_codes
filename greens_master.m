@@ -84,6 +84,11 @@ target_units = 'm^3';
 tseries_units = 'months';
 % ------------------------------------------------- % ^^
 
+% do you want to save all figures or just the core ones?
+% ------------------------------------------------- % vv
+fig_decision = 1; % choose 1 for core only, 2 for all
+% ------------------------------------------------- % ^^
+
 %% Determine cutoff and segment choices
 % Choices for the length of memory going back a given number of lagged
 % months. We vary the cutoff lag to obtain independent estimates.
@@ -358,8 +363,10 @@ set(gca,'FontName','Arial')
 xlabel(tseries_units,'FontName','Arial','FontSize',18); ylabel(strcat(target_id,' change, ',target_units),'FontName','Arial','FontSize',18); grid on; hold off
 name = strcat(title_id,' response to forcing component: ',comp_no{i}); 
 title(name);
+if fig_decision == 2
 filename = strcat(fig_dir,save_id,'_step_resp_segments_forcing_comp_',comp_no{i});
 saveas(gcf, filename)
+end
 clearvars leg_info
 figure % collated segments 
 errorbar(1:length(grand_SR(:,i)), grand_SR(:,i), grand_SE(:,i), 'b'); hold on;
@@ -367,9 +374,11 @@ plot(grand_SR(:,i),'k'); hold off
 set(gca,'FontSize',18)
 set(gca,'FontName','Arial')
 name = strcat(title_id,' step resp to forcing component: ',comp_no{i});
-title(name,'FontName','Arial','FontSize',18); xlabel(tseries_units,'FontName','Arial','FontSize',18); ylabel(strcat(target_id,' change, ',target_units),'FontName','Arial','FontSize',18); grid on; 
+title(name,'FontName','Arial','FontSize',18); xlabel(tseries_units,'FontName','Arial','FontSize',18); ylabel(strcat(target_id,' change, ',target_units),'FontName','Arial','FontSize',18); grid on;
+if fig_decision ==2
 filename = strcat(fig_dir,save_id,'step_resp_collated_forcing_comp_',comp_no{i});
 saveas(gcf, filename)
+end
 
 figure  % collated recon 
 eshade2(1:length(grand_CR(:,i)), grand_CR(:,i), grand_CR_errs(:,i), 'b')
@@ -381,9 +390,10 @@ set(gca,'FontName','Arial')
 name = strcat(title_id,' recon, forcing comp: ',comp_no{i});
 title(name,'FontName','Arial','FontSize',18)
 xlabel(tseries_units,'FontName','Arial','FontSize',18); ylabel(strcat(target_id,' change, ',target_units),'FontName','Arial','FontSize',18); grid on; hold off
-
+if fig_decision == 2
 filename = strcat(fig_dir,save_id,'_recon_fc_',comp_no{i});
 saveas(gcf, filename)
+end
 end
 
 figure % step responses to all forcing components in one plot 
