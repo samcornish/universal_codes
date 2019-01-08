@@ -63,6 +63,7 @@ load fw_tseries_1_anude.mat fw_ts_ds  % this should probably be deseasonalised, 
 target = fw_ts_ds;  % replace var_name as appropriate
 % ------------------------------------------------- % ^^
 target = detrend(target,'linear');   % decide if a linear or constant detrend is most appropriate 
+% target needs to be a row vector for the later matrix operations to work
 
 % Determining the strings used to save files
 % saving variables
@@ -396,6 +397,7 @@ saveas(gcf, filename)
 end
 end
 
+
 figure % step responses to all forcing components in one plot 
 
 for f = fliplr(1:szf(2))    % we do this in reverse order so that the leading forcing components are at the front of the plot
@@ -412,15 +414,14 @@ filename = strcat(fig_dir,save_id,'_step_resps');
 saveas(gcf,filename)
 
 
-%% 
-% correlations
+%% correlations
 
 R_fc_seg = zeros(l_sp,szf(2));
 P_fc_seg = zeros(l_sp,szf(2));
 figure
 for i = 1:szf(2)
 for k = spacing_index
-[r,p] = corrcoef(detrend(target(1,360:end)),detrend(Recon(360:end,k,i)));
+[r,p] = corrcoef(detrend(target(min(tau_cutoff_choices):end)),detrend(Recon(min(tau_cutoff_choices):end,k,i)));
     R_fc_seg(k,i) = r(1,2);
     P_fc_seg(k,i) = p(1,2);
 end
@@ -436,12 +437,40 @@ name = 'target/recon correlations across forcing components';
 title(name,'FontName','Arial','FontSize',18)
 ylabel('R')
 
-[r_fc, p_fc] = corrcoef(detrend(target(1,360:end)),detrend(grand_CR(360:end,i)));
+[r_fc, p_fc] = corrcoef(detrend(target(min(tau_cutoff_choices):end)),detrend(grand_CR(min(tau_cutoff_choices):end,i)));
 
 end
-[r_overall, p_overall] = corrcoef(detrend(target(1,360:end)),detrend(sum(grand_CR(360:end,:),2)));
+[r_overall, p_overall] = corrcoef(detrend(target(min(tau_cutoff_choices):end)),detrend(sum(grand_CR(min(tau_cutoff_choices):end,:),2)));
 legend(comp_no)
 filename = strcat(fig_dir,save_id,'_recon_correlations');
 saveas(gcf, filename)
 filename = strcat(var_dir,save_id,'_recon_corrcoefs.mat');
 save(filename,'R_fc_seg','P_fc_seg','r_fc','p_fc','r_overall','p_overall')
+
+%% summed reconstruction
+if szf(2) > 1    % we only want to find the summed reconstruction if there are multiple forcing components
+CR_sum = sum(grand_CR,2);
+CR_sum_errs_precursor = zeros(length(grand_CR_errs),1);
+for i = szf(2)  % number of forcing components
+CR_sum_errs_precursor = CR_sum_errs_precursor + grand_CR_errs(:,i).^2; % We sum the contributions of each forcing component to the error on the control run reconstruction
+end
+CR_sum_errs = CR_sum_errs_precursor.^0.5;
+figure      % summed reconstruction - doing this after correlations so can add R value
+eshade2(1:length(CR_sum), detrend(CR_sum)-mean(detrend(CR_sum)), 2*CR_sum_errs, 'c')
+hold on
+eshade2(1:length(CR_sum),detrend(CR_sum)-mean(detrend(CR_sum)), CR_sum_errs, 'b')
+plot(detrend(CR_sum)-mean(detrend(CR_sum)), 'g', 'LineWidth', 2.6)
+plot(detrend(target)-mean(detrend(target)),'r','LineWidth',2.8);hold on
+txt = ['R = ' num2str(r_overall(1,2))];
+text(0.7*length(CR_sum),max(CR_sum),txt) 
+xlim([min(tau_cutoff_choices) L])
+set(gca,'FontSize',18)
+set(gca,'FontName','Arial')
+title('Reconstruction using PC1, PC2, PC3','FontName','Arial','FontSize',18)
+xlabel('Months','FontName','Arial','FontSize',18); ylabel('FW flux [m^3/s]','FontName','Arial','FontSize',18); grid on; hold off
+
+filename = strcat(fig_dir,save_id,'_recon_summed.fig');
+saveas(gcf,filename)
+filename = strcat(var_dir,save_id,'_recon.mat');
+save(filename,'CR_sum','CR_sum_errs','-append');    % we append this .mat file with the summed recon and errors
+end
